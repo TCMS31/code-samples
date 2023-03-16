@@ -93,10 +93,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Views authenticate the "Authorization: JWT <token>" header themselves through
+# AccountUtility.get_user_data, so DRF's own authenticators are switched off.
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
 }
 
 JWT_AUTH = {"JWT_EXPIRATION_DELTA": datetime.timedelta(days=1)}

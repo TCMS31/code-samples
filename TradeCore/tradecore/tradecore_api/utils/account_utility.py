@@ -9,7 +9,6 @@ and signup still succeeds with empty geolocation data. That keeps a fresh clone
 import datetime
 import json
 import logging
-import os
 
 import jwt
 import requests
@@ -35,8 +34,8 @@ session.mount("http://", adapter)
 
 
 def _jwt_secret():
-    """Signing key for the API's own tokens, falling back to Django's SECRET_KEY."""
-    return os.environ.get("SECRET_KEY") or settings.SECRET_KEY
+    """Signing key for the API's own tokens: Django's SECRET_KEY."""
+    return settings.SECRET_KEY
 
 
 class AccountUtility:
@@ -127,8 +126,12 @@ class AccountUtility:
     def get_token(cls, user):
         """Issue a bounded token using an explicit signing algorithm."""
         now = datetime.datetime.now(datetime.timezone.utc)
-        payload = {"user_id": user.pk, "email": user.email, "iat": now,
-                   "exp": now + settings.JWT_AUTH["JWT_EXPIRATION_DELTA"]}
+        payload = {
+            "user_id": user.pk,
+            "email": user.email,
+            "iat": now,
+            "exp": now + settings.JWT_AUTH["JWT_EXPIRATION_DELTA"],
+        }
         return jwt.encode(payload, _jwt_secret(), algorithm=JWT_ALGORITHM)
 
     @classmethod
@@ -140,7 +143,12 @@ class AccountUtility:
         if len(parts) != 2 or parts[0].upper() != "JWT":
             return None
         try:
-            user_data = jwt.decode(parts[1], _jwt_secret(), algorithms=[JWT_ALGORITHM], options={"require": ["exp", "iat", "email"]})
+            user_data = jwt.decode(
+                parts[1],
+                _jwt_secret(),
+                algorithms=[JWT_ALGORITHM],
+                options={"require": ["exp", "iat", "email"]},
+            )
             return User.objects.get(email=user_data["email"])
         except (jwt.InvalidTokenError, User.DoesNotExist, KeyError):
             return None
