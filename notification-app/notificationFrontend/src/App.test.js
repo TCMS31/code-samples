@@ -10,9 +10,10 @@ jest.mock("./api/client");
 
 const renderAt = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
-// This MUI version renders a select as a div with role="button" holding the
-// chosen option's label, so there is no input value to query.
-const categorySelect = () => document.getElementById("categorySelection");
+// MUI renders the select as a div with role="combobox" holding the chosen
+// option's label, so there is no input value to query.
+const categorySelect = () =>
+  screen.getByRole("combobox", { name: /category/i });
 const waitForCategory = (label) =>
   waitFor(() => expect(categorySelect()).toHaveTextContent(label));
 

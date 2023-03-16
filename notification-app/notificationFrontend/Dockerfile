@@ -17,7 +17,7 @@ RUN npm run build
 
 
 # ---- serve it ----
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.30-alpine AS runtime
 
 # Client-side routing: /logs must fall back to index.html.
 RUN printf 'server {\n\
