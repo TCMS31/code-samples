@@ -164,6 +164,19 @@ class PostUpdateDeleteTests(PostAPITestCase):
         post.refresh_from_db()
         self.assertNotEqual(post.title, "Hijacked")
 
+    def test_update_cannot_reassign_the_owner(self):
+        post = PostFactory.create(user=self.user)
+        response = self.client.patch(
+            reverse("post-update-delete", kwargs={"id": post.id}),
+            data={"title": "Still mine", "user": self.other_user.id},
+            format="json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        post.refresh_from_db()
+        self.assertEqual(post.user_id, self.user.id)
+        self.assertEqual(post.title, "Still mine")
+
     def test_update_reports_validation_errors(self):
         """Regression: this branch referenced ``serializer.erros`` and crashed."""
         post = PostFactory.create(user=self.user)
