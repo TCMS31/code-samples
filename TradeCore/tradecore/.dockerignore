@@ -1,0 +1,27 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Local state - never bake into an image
+.env
+*.sqlite3
+*.log
+
+# Tests and docs are not needed in the runtime image
+.pytest_cache/
+.coverage
+htmlcov/
+docs/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store

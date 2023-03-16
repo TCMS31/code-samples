@@ -1,0 +1,18 @@
+# Shared formatting configuration for every Python sample in this repository.
+# Each sample keeps its own requirements.txt; this file only configures tools.
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+extend-exclude = '''
+/(
+    migrations
+  | \.venv
+  | venv
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_glob = ["*/migrations/*"]

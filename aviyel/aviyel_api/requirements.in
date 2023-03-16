@@ -1,0 +1,8 @@
+Django>=5.2,<5.3
+djangorestframework>=3.16,<4
+python-dotenv>=1
+requests>=2.32.4
+pandas>=2.2,<3
+google-api-python-client>=2.160
+sqlparse>=0.5.3
+isodate>=0.7,<1

@@ -1,0 +1,76 @@
+# Every sample in this repository, runnable side by side.
+#
+# Each service is independent - there is no shared database and no service
+# depends on another except the notification front-end, which needs its API.
+# Bring up just one with, for example:
+#
+#   docker compose up tradecore
+#
+# Host ports are in the 8610-8619 range to avoid clashing with anything already
+# listening on the conventional 3000/8000.
+
+services:
+  tradecore:
+    build:
+      context: ./TradeCore/tradecore
+    image: code-samples/tradecore:dev
+    ports:
+      - "8611:8000"
+    environment:
+      SECRET_KEY: ${TRADECORE_SECRET_KEY:-dev-only-insecure-key-change-me}
+      DJANGO_DEBUG: "1"
+      # Optional. Left empty, signup skips enrichment instead of failing.
+      ABSTRACT_GEOLOCATION_API_KEY: ${ABSTRACT_GEOLOCATION_API_KEY:-}
+      ABSTRACT_HOLIDAYS_API_KEY: ${ABSTRACT_HOLIDAYS_API_KEY:-}
+    volumes:
+      - tradecore-db:/app/data
+    restart: unless-stopped
+
+  aviyel:
+    build:
+      context: ./aviyel/aviyel_api
+    image: code-samples/aviyel:dev
+    ports:
+      - "8612:8000"
+    environment:
+      SECRET_KEY: ${AVIYEL_SECRET_KEY:-dev-only-insecure-key-change-me}
+      DJANGO_DEBUG: "1"
+      # Optional. Without it, POST /analysis/ returns 503 and GET still works
+      # against the committed input_files/travel.csv.
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+    volumes:
+      - aviyel-output:/app/aviyel_api/output_files
+    restart: unless-stopped
+
+  notification-api:
+    build:
+      context: ./notification-app/notificationAPI
+    image: code-samples/notification-api:dev
+    ports:
+      - "8613:8000"
+    environment:
+      SECRET_KEY: ${NOTIFICATION_SECRET_KEY:-dev-only-insecure-key-change-me}
+      DJANGO_DEBUG: "1"
+      CORS_ALLOWED_ORIGINS: http://localhost:8614
+    volumes:
+      - notification-db:/app/data
+    restart: unless-stopped
+
+  notification-frontend:
+    build:
+      context: ./notification-app/notificationFrontend
+      args:
+        # CRA inlines this at build time, so it is a build arg, not a runtime env.
+        REACT_APP_API_URL: http://localhost:8613/
+    image: code-samples/notification-frontend:dev
+    ports:
+      - "8614:8080"
+    depends_on:
+      notification-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  tradecore-db:
+  aviyel-output:
+  notification-db:
