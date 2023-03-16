@@ -10,12 +10,15 @@ Part of [`code-samples`](../README.md).
 ## Stack
 
 - **Backend:** Python 3.12, Django 5.2, Django REST Framework, SQLite
-- **Frontend:** React 18, MUI 5, axios, React Router 6
+- **Frontend:** Node 22, React 18, MUI 5, axios, React Router 6
 
 ## Screenshots
 
 ![Add message form](docs/screenshots/01-add-message.png)
+![Category picker](docs/screenshots/02-category-open.png)
+![Message sent](docs/screenshots/03-message-sent.png)
 ![Notification log](docs/screenshots/04-notification-log.png)
+![Notification log on a phone](docs/screenshots/05-notification-log-mobile.png)
 
 ## Setup
 
@@ -35,11 +38,6 @@ python manage.py runserver
 the demo needs, and is safe to re-run. Pass `--messages N` to also generate
 messages and their log entries.
 
-> An earlier version of this file claimed the repository shipped a pre-populated
-> `db.sqlite3`. It does not — that file is git-ignored and was never committed,
-> which left a fresh clone with an empty database and a permanently blank Logs
-> page. `seed_demo` replaces that claim with something that actually works.
-
 For the admin site, create a superuser as well:
 
 ```bash
@@ -50,7 +48,7 @@ python manage.py createsuperuser
 
 ```bash
 cd notificationFrontend
-npm install
+npm ci
 cp .env.example .env.local      # optional; defaults to http://localhost:8000/
 npm start
 ```
@@ -64,7 +62,8 @@ npm start
 | `POST` | `/add/` | Create a message (`message`, `category`) and fan out notifications |
 | `GET` | `/categories/` | Selectable message categories — used by the Add Message form |
 
-Log responses are paginated (`PAGE_SIZE`, default 50):
+Log responses are paginated (`PAGE_SIZE`, default 50). The Logs page shows the
+newest page and the total, e.g. "Newest 50 of 120 entries":
 
 ```json
 { "count": 25, "next": null, "previous": null, "results": [ { "log": "..." } ] }
@@ -90,11 +89,15 @@ behaviour beyond writing a `Log` row.
 
 ```bash
 cd notificationAPI && python manage.py test          # 21 tests
-cd notificationFrontend && npm run test:ci           # 14 tests
+cd notificationFrontend && npm run test:once         # 16 tests
 ```
 
 No test makes a network call.
 
 ## Configuration
 
-See the [Configuration section of the root README](../README.md#configuration).
+API: `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `SQLITE_PATH`,
+`CORS_ALLOWED_ORIGINS`, `PAGE_SIZE`, all described in
+[`notificationAPI/.env.example`](notificationAPI/.env.example). Front-end:
+`REACT_APP_API_URL`, see
+[`notificationFrontend/.env.example`](notificationFrontend/.env.example).
