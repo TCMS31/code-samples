@@ -78,3 +78,12 @@ $ cat aviyel_api/output_files/min_max_tag_durations.csv
 Category with Max Duration,Education
 Category with Min Duration,Music
 ```
+
+`classified_tags.csv` lists each category's distinct tags, one tag per list
+entry (512 for `Travel & Events`, 237 for `Music`). The first row:
+
+```console
+$ head -2 aviyel_api/output_files/classified_tags.csv
+Category,Tags
+Autos & Vehicles,"['and', 'blow', 'blowing', 'landscaping', 'materials', 'soil', 'we']"
+```

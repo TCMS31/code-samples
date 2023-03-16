@@ -44,7 +44,7 @@ Hitting the endpoint will search, clean and then generate a file in the ```input
 
 ### GET
 The get method is used to run the analysis on the generated input file. To run the analysis, hit the following endpoint with keyword as the query param ```http://127.0.0.1:8000/analysis/?keyword=travel```
-Hitting the endpoint will generate csv files in the ```ouput_files``` folder with the required analysis written into each file.
+Hitting the endpoint will generate csv files in the ```output_files``` folder with the required analysis written into each file.
 
 ### OVERVIEW
 
@@ -76,7 +76,7 @@ YouTube API key, so the original data is kept as-is and labelled here.
 ### Testing
 
 ```bash
-python manage.py test        # 27 tests
+python manage.py test        # 29 tests
 ```
 
 The YouTube client is stubbed throughout - no test needs a key or a network.

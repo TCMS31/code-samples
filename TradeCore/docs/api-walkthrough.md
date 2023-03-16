@@ -48,5 +48,3 @@ $ curl -s -X DELETE http://localhost:8611/api/post/1 -H "Authorization: JWT $OTH
 $ curl -s -X DELETE http://localhost:8611/api/post/1 -H "Authorization: JWT $TOKEN"
 {"message":"Post successfully deleted"}
 ```
-(eval):65: device not configured: /dev/tty
-      52 /Users/dev/Documents/Projects/WAMO/githubs/all_projects/code-samples/TradeCore/docs/api-walkthrough.md

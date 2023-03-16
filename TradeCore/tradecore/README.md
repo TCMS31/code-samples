@@ -97,7 +97,7 @@ lowercases it on save.
 ### Testing
 
 ```bash
-python manage.py test        # 48 tests
+python manage.py test        # 52 tests
 ```
 
 Every outbound HTTP call is mocked - the suite needs no API key and makes no
