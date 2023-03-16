@@ -30,8 +30,11 @@ RUN python -m pip install --no-index --find-links=/wheels -r requirements.txt \
 
 COPY --chown=appuser:appuser . .
 
-# Analysis output is written at runtime.
-RUN mkdir -p /app/aviyel_api/output_files && chown appuser:appuser /app/aviyel_api/output_files
+# Analysis output is written at runtime. /app itself is root-owned, so SQLite
+# also gets a directory appuser can write to.
+RUN mkdir -p /app/aviyel_api/output_files /app/data \
+    && chown appuser:appuser /app/aviyel_api/output_files /app/data
+ENV SQLITE_PATH=/app/data/db.sqlite3
 
 USER appuser
 
@@ -42,4 +45,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/analysis/?keyword=travel', timeout=4).status < 500 else 1)" \
     || exit 1
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"]

@@ -169,9 +169,10 @@ docker compose up --build tradecore    # or just one
 |---|---|---|---|
 | [8611](http://localhost:8611/api/) | [8612](http://localhost:8612/analysis/?keyword=travel) | [8613](http://localhost:8613/logs/) | [8614](http://localhost:8614) |
 
-The TradeCore and notification containers run their migrations on start and
-keep SQLite on a named volume. The notification API also seeds its demo
-channels, categories and users, so the front-end on 8614 works straight away.
+All three API containers run their migrations on start. TradeCore and the
+notification API keep SQLite on a named volume, and the notification API seeds
+its demo channels, categories and users, so the front-end on 8614 works
+straight away.
 To add demo messages:
 
 ```bash
@@ -183,7 +184,7 @@ docker compose exec notification-api python manage.py seed_demo --messages 4
 | Sample | Variables (all optional) |
 |---|---|
 | TradeCore | `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `SQLITE_PATH`, `ABSTRACT_GEOLOCATION_API_KEY`, `ABSTRACT_HOLIDAYS_API_KEY`, `ABSTRACT_API_TIMEOUT` |
-| aviyel | `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `GOOGLE_API_KEY` (collection only) |
+| aviyel | `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `SQLITE_PATH`, `GOOGLE_API_KEY` (collection only) |
 | notification API | `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `SQLITE_PATH`, `CORS_ALLOWED_ORIGINS`, `PAGE_SIZE` |
 | notification front-end | `REACT_APP_API_URL` (default `http://localhost:8000/`) |
 
