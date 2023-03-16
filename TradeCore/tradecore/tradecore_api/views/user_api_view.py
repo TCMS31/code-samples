@@ -1,9 +1,10 @@
-from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
-from tradecore_api.models import User
 from django.http import Http404
-from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from tradecore_api.models import User
 from tradecore_api.serializers import UserSerializer
 
 

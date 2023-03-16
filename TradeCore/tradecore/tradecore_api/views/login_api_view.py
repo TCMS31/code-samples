@@ -1,10 +1,11 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from tradecore_api.utils import AccountUtility
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from tradecore_api.serializers import UserSerializer
+from tradecore_api.utils import AccountUtility
 
 
 class LoginAPIView(APIView):

@@ -1,8 +1,8 @@
 from .account_utility_tests import (
     EnrichmentDisabledTests,
     EnrichmentEnabledTests,
-    TokenTests,
     TokenBoundaryTests,
+    TokenTests,
     ValidationTests,
 )
 from .post_tests import (

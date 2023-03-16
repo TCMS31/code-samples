@@ -16,3 +16,9 @@ extend-exclude = '''
 profile = "black"
 line_length = 88
 skip_glob = ["*/migrations/*"]
+# Each sample is its own import root, so its apps count as first-party.
+src_paths = [
+  "TradeCore/tradecore",
+  "aviyel/aviyel_api",
+  "notification-app/notificationAPI",
+]

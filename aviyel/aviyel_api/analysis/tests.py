@@ -273,21 +273,23 @@ class YouTubeClientTests(SimpleTestCase):
 
     def test_collect_joins_details_to_category_names(self):
         client = YouTubeClient(api_key="k")
-        with mock.patch.object(
-            client, "search_video_ids", return_value=["v1"]
-        ), mock.patch.object(
-            client,
-            "fetch_video_details",
-            return_value=[
-                {
-                    "video_id": "v1",
-                    "category_id": "19",
-                    "duration": 90.0,
-                    "tags": ["a"],
-                }
-            ],
-        ), mock.patch.object(
-            client, "fetch_category_names", return_value={"19": "Travel & Events"}
+        with (
+            mock.patch.object(client, "search_video_ids", return_value=["v1"]),
+            mock.patch.object(
+                client,
+                "fetch_video_details",
+                return_value=[
+                    {
+                        "video_id": "v1",
+                        "category_id": "19",
+                        "duration": 90.0,
+                        "tags": ["a"],
+                    }
+                ],
+            ),
+            mock.patch.object(
+                client, "fetch_category_names", return_value={"19": "Travel & Events"}
+            ),
         ):
             rows = client.collect("travel")
 

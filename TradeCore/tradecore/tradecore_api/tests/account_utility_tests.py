@@ -114,20 +114,38 @@ class TokenBoundaryTests(TestCase):
     def test_rejects_expired_tokens(self):
         import jwt
         from django.conf import settings
-        token = jwt.encode({"email": "expired@example.test", "iat": 1, "exp": 2}, settings.SECRET_KEY, algorithm="HS256")
+
+        token = jwt.encode(
+            {"email": "expired@example.test", "iat": 1, "exp": 2},
+            settings.SECRET_KEY,
+            algorithm="HS256",
+        )
         self.assertIsNone(AccountUtility.get_user_data(f"JWT {token}"))
 
     def test_rejects_a_different_signing_algorithm(self):
-        import jwt
         import time
+
+        import jwt
         from django.conf import settings
+
         user = UserFactory.create()
-        token = jwt.encode({"email": user.email, "iat": int(time.time()), "exp": int(time.time()) + 60}, settings.SECRET_KEY, algorithm="HS384")
+        token = jwt.encode(
+            {
+                "email": user.email,
+                "iat": int(time.time()),
+                "exp": int(time.time()) + 60,
+            },
+            settings.SECRET_KEY,
+            algorithm="HS384",
+        )
         self.assertIsNone(AccountUtility.get_user_data(f"JWT {token}"))
 
     def test_requires_an_expiration_claim(self):
         import jwt
         from django.conf import settings
+
         user = UserFactory.create()
-        token = jwt.encode({"email": user.email, "iat": 1}, settings.SECRET_KEY, algorithm="HS256")
+        token = jwt.encode(
+            {"email": user.email, "iat": 1}, settings.SECRET_KEY, algorithm="HS256"
+        )
         self.assertIsNone(AccountUtility.get_user_data(f"JWT {token}"))

@@ -1,5 +1,6 @@
 from django.db import models
-from tradecore_api.models import User
+
+from tradecore_api.models.user import User
 
 
 class Post(models.Model):
