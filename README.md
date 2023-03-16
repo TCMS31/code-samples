@@ -1,79 +1,84 @@
 # code-samples
 
-Three separate Django REST Framework projects, each written for its own brief,
-kept in one repository so they can be read side by side. **They share no code, no
-database and no settings module** — this file is an index, not an architecture
-document. Pick a directory, follow its own README, run it on its own.
+Three small Django REST Framework projects, each written for its own brief and
+kept in one repository so they can be read side by side. They share no code, no
+database and no settings module. Pick a directory and run it on its own.
 
-| Sample | One line | Behind the HTTP layer | Tests |
-|---|---|---|---|
-| [`TradeCore/`](TradeCore/tradecore) | JWT-authenticated social API — signup, login, posts, likes | PyJWT, a custom `User` manager, optional signup enrichment | 51 |
-| [`aviyel/`](aviyel/aviyel_api) | Collect YouTube search results for a keyword, then analyse the CSV | YouTube Data API v3 client + a pure-pandas stats module | 27 |
-| [`notification-app/`](notification-app) | Post one message to a category, get one delivery row per subscriber per channel | Subclass-discovery dispatcher registry, React 18 + MUI front-end | 21 + 14 |
+| Directory | What it does | Tests |
+|---|---|---|
+| [`TradeCore/`](TradeCore/tradecore) | Social-posting API: sign up, log in with a JWT, create, edit, delete and like posts | 52 |
+| [`aviyel/`](aviyel/aviyel_api) | Collects YouTube search results for a keyword into a CSV, then reports per-category counts, durations and tags | 29 |
+| [`notification-app/`](notification-app) | Posts a message to a category and fans it out to every subscriber on every channel they use, with a React UI | 21 API + 16 UI |
 
-All three backends are verified on Python 3.12 and Django 5.2.18. Each has its own
-`requirements.in` and resolved `requirements.txt`; install them in separate environments.
-Every sample starts with **no API keys set** and no test makes a network call.
+The directory names come from the briefs the samples were written for. None of
+the samples needs an API key, and no test makes a network call.
 
----
+## Requirements
 
-## TradeCore — JWT social API
+- Python 3.12 (pinned in [`.python-version`](.python-version)), one virtual
+  environment per sample.
+- Node 22 for the notification front-end (pinned in
+  [`.nvmrc`](notification-app/notificationFrontend/.nvmrc)).
+- Or just Docker, see [Running everything with Docker](#running-everything-with-docker).
 
-Users sign up with an e-mail and password, get a JWT, and own their posts. Two
-optional Abstract API lookups can annotate a signup with the caller's
-geolocation and whether the date is a public holiday.
+Every backend has a `requirements.in` and a resolved `requirements.txt`, plus an
+`.env.example`. Copying it to `.env` is optional, because every value has a
+working default. The default `SECRET_KEY` is a placeholder for local use only.
+
+## TradeCore: JWT social API
 
 ```bash
 cd TradeCore/tradecore
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py runserver        # routes under http://localhost:8000/api
-python manage.py test             # 51 tests
+python manage.py test             # 52 tests
+python manage.py runserver        # http://localhost:8000/api
 ```
 
 Routes (no trailing slashes): `POST /api/signup`, `POST /api/login`,
 `GET /api/user/<id>`, `GET|POST|PATCH /api/post`, `PATCH|DELETE /api/post/<id>`.
-A real transcript of the whole path, including the 401 and 404 cases, is in
-[`TradeCore/docs/api-walkthrough.md`](TradeCore/docs/api-walkthrough.md) —
-captured with no API keys configured.
+Authenticated calls send `Authorization: JWT <token>` with the token from login.
 
-Two things worth opening:
+```console
+$ curl -s -X POST localhost:8000/api/signup -H 'Content-Type: application/json' \
+    -d '{"email":"ada@example.com","password":"a-Strong-passw0rd","first_name":"Ada","last_name":"Lovelace"}'
+{"id":1,"email":"ada@example.com","first_name":"Ada","last_name":"Lovelace","geolocation_data":{},"joined_on_holiday":false}
+```
 
-- **`utils/account_utility.py`** holds validation, token issue/verify and the
-  enrichment calls, so no view talks to a third party directly. When
-  `ABSTRACT_GEOLOCATION_API_KEY` / `ABSTRACT_HOLIDAYS_API_KEY` are unset the
-  lookups are skipped rather than attempted — `EnrichmentDisabledTests` patches
-  the module's HTTP session and asserts its `get` is never called, which is why
-  the suite needs no keys.
-- **Listing is capped and joined.** `MAX_POSTS_PER_RESPONSE = 100` in
-  `views/post_api_view.py`, and `test_list_query_count_does_not_grow_with_row_count`
-  holds the query count at 2 whether the user has 3 posts or 30.
+The full path, including login, likes and the 401 cases, is in
+[`TradeCore/docs/api-walkthrough.md`](TradeCore/docs/api-walkthrough.md).
 
-Env vars (all optional, see `.env.example`): `SECRET_KEY`, `DJANGO_DEBUG`,
-`ALLOWED_HOSTS`, `ABSTRACT_GEOLOCATION_API_KEY`, `ABSTRACT_HOLIDAYS_API_KEY`,
-`ABSTRACT_API_TIMEOUT` (seconds, default 5).
+Design notes:
 
----
+- **Tokens.** `utils/account_utility.py` issues and checks tokens with PyJWT:
+  HS256 only, signed with `SECRET_KEY`, and `exp`, `iat` and `email` are
+  required. The tests cover expired tokens, tokens without an expiry and tokens
+  signed with another algorithm.
+- **Ownership.** The post owner is always the caller. It cannot be changed
+  through `PATCH /api/post/<id>`, and only the owner can edit or delete a post.
+- **Optional enrichment.** At signup two Abstract API lookups can record the
+  caller's geolocation and whether the day is a public holiday. Without
+  `ABSTRACT_GEOLOCATION_API_KEY` / `ABSTRACT_HOLIDAYS_API_KEY` they are skipped,
+  not attempted.
+- **Bounded listing.** `GET /api/post` returns at most 100 posts, newest first,
+  in two queries however many posts exist.
 
-## aviyel — YouTube keyword analysis
-
-`POST /analysis/ {"keyword": "..."}` collects videos into
-`aviyel_api/input_files/<keyword>.csv`. `GET /analysis/?keyword=...` reads that
-file and writes five report CSVs to `output_files/`. Collection needs a key;
-analysis does not.
+## aviyel: YouTube keyword analysis
 
 ```bash
 cd aviyel/aviyel_api
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python manage.py migrate
+python manage.py test             # 29 tests
 python manage.py runserver
-curl 'http://localhost:8000/analysis/?keyword=travel'   # no API key needed
-python manage.py test             # 27 tests
+curl 'http://localhost:8000/analysis/?keyword=travel'
 ```
 
-`travel.csv` is committed, so the GET works on a fresh clone:
+`POST /analysis/ {"keyword": "..."}` collects videos into
+`aviyel_api/input_files/<keyword>.csv`, which needs `GOOGLE_API_KEY`. Without
+it the endpoint returns 503 and names the variable. `GET /analysis/?keyword=...`
+reads that file, needs no key, and writes five report CSVs to `output_files/`:
 
 ```console
 {"message":"Analysis complete for 'travel'.","videos_analysed":350,"categories":15,
@@ -81,141 +86,127 @@ python manage.py test             # 27 tests
           "min_max_tag_durations.csv","classified_tags.csv"]}
 ```
 
-Full run, including the 503 you get without a key and the generated CSV
-contents: [`aviyel/docs/analysis-run.md`](aviyel/docs/analysis-run.md).
+The report contents are in [`aviyel/docs/analysis-run.md`](aviyel/docs/analysis-run.md).
 
-The split is the point. `services/youtube.py` owns every network call;
-`services/statistics.py` imports neither Django nor `requests` and is pure
-pandas; `views.py` only does HTTP. That is what makes 27 offline tests possible.
-The client batches: `test_video_details_are_requested_in_batches_of_fifty` feeds
-it 120 video ids and requires exactly **3** `videos.list` calls, and
-`test_category_names_are_deduplicated_before_fetching` feeds 200 repeated
-category ids and requires **1** call.
+Design notes:
 
-**The committed dataset is not a clean travel sample.** Of its 350 rows only 29
-are `Travel & Events`; the largest categories are Entertainment (65), Gaming
-(59) and Education (52). It is kept as-is and labelled because regenerating it
-needs a `GOOGLE_API_KEY`. Treat it as input data for exercising the analysis
-code, not as a result.
+- **Three layers.** `services/youtube.py` makes every network call,
+  `services/statistics.py` is plain pandas with no Django or HTTP, and
+  `views.py` only handles HTTP. That split is what lets the tests run offline.
+- **Batched collection.** Video details and category names are requested 50
+  ids per call, so 120 videos cost three `videos.list` calls, not 120.
+- **The committed `travel.csv` is not a clean travel sample.** An early bug
+  searched the keyword on the first page only, so just 29 of its 350 rows are
+  `Travel & Events`. It is kept as input for the analysis code because
+  regenerating it needs a key.
 
-Env vars: `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `GOOGLE_API_KEY`
-(collection only).
+## notification-app: fan-out on write
 
----
-
-## notification-app — fan-out on write
-
-The only sample with a UI. A message is posted to a category; inside one
-transaction the manager writes one `Log` row for every user subscribed to both
-that category and a given channel, one `bulk_create` per channel. Nothing is
-actually delivered — a dispatcher writes a log row, there is no SMS or e-mail
-provider behind it.
+A message is posted to a category. In one transaction, the API writes one `Log`
+row for each user who subscribes to that category, for each channel the user
+has enabled. Nothing is really sent: every dispatcher writes a log row, and no
+SMS or e-mail provider sits behind it.
 
 ```bash
-# terminal 1 — API
+# API
 cd notification-app/notificationAPI
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py seed_demo --messages 4    # channels, categories, 3 users, data
-python manage.py runserver
+python manage.py seed_demo --messages 4    # 3 channels, 3 categories, 3 users
 python manage.py test                      # 21 tests
+python manage.py runserver
 
-# terminal 2 — front-end
+# front-end, in a second terminal
 cd notification-app/notificationFrontend
-npm install && npm start                   # http://localhost:3000
-npm run test:ci                            # 14 tests
+npm ci && npm start                        # http://localhost:3000
+npm run test:once                          # 16 tests
 ```
 
 ![Add message form](notification-app/docs/screenshots/01-add-message.png)
 
-Categories come from `GET /categories/` rather than hardcoded ids, and the
-resulting log is one row per (user, channel) pair:
-
 ![Notification log](notification-app/docs/screenshots/04-notification-log.png)
 
-Adding a channel is a subclass and an attribute — `dispatchers()` in
-`main/notifications.py` walks the subclass tree recursively, so no registration
-call and no change to the manager is needed:
+The log page at phone width:
 
-```python
-class WebhookDispatcher(NotificationDispatcher):
-    channel_name = "Webhook"
-```
+<img src="notification-app/docs/screenshots/05-notification-log-mobile.png" alt="Notification log at 390 px wide" width="260">
 
-`test_a_new_subclass_is_picked_up_automatically` and
-`test_nested_subclasses_are_found` hold that contract. On the read side,
-`test_log_listing_does_not_scale_queries_with_row_count` asserts `GET /logs/`
-costs **2 queries at 4 rows and the same 2 at 44 rows** — `select_related` over
-`user`, `channel`, `message` and `message.category`, plus page-size pagination,
-so the response is a `{count, results}` envelope rather than a bare array.
+Routes: `GET /logs/` and `GET /logs/string` (paginated, `{count, results}`),
+`POST /add/`, `GET /categories/`. The form loads its categories from the API,
+and the log page shows the newest page together with the total count.
 
-Routes: `GET /logs/`, `GET /logs/string`, `POST /add/`, `GET /categories/`.
-Env vars: API — `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`,
-`CORS_ALLOWED_ORIGINS`, `PAGE_SIZE`; front-end — `REACT_APP_API_URL`
-(defaults to `http://localhost:8000/`).
+Design notes:
 
-More detail, including the endpoint table: [`notification-app/README.md`](notification-app/README.md).
+- **Adding a channel is a subclass.** `NotificationDispatcher.dispatchers()` in
+  `main/notifications.py` walks the subclass tree, so a new channel needs no
+  registration call and no change to the manager:
 
----
+  ```python
+  class WebhookDispatcher(NotificationDispatcher):
+      channel_name = "Webhook"
+  ```
 
-## Running all four services at once
+- **Constant query count.** `GET /logs/` uses `select_related` across user,
+  channel, message and category, and a test holds it at two queries for both
+  4 and 44 rows.
+- **No queue.** The fan-out runs inside the request. That is fine for a demo
+  and wrong for real delivery.
 
-[`docker-compose.yml`](docker-compose.yml) wires the three backends and the
-front-end on host ports 8611–8614.
+More detail, including the endpoint table and front-end configuration, is in
+[`notification-app/README.md`](notification-app/README.md).
+
+## Running everything with Docker
+
+[`docker-compose.yml`](docker-compose.yml) builds all four services and
+publishes them on host ports 8611 to 8614:
 
 ```bash
-docker compose up               # all four
-docker compose up tradecore     # or one
+docker compose up --build              # all four
+docker compose up --build tradecore    # or just one
 ```
 
 | tradecore | aviyel | notification-api | notification-frontend |
 |---|---|---|---|
-| 8611 | 8612 | 8613 | 8614 |
+| [8611](http://localhost:8611/api/) | [8612](http://localhost:8612/analysis/?keyword=travel) | [8613](http://localhost:8613/logs/) | [8614](http://localhost:8614) |
 
-**The images have not been built or booted.** `docker compose config` parses
-cleanly and resolves all four services, and that is the only Docker verification
-that has been done here.
-
-## Shared tooling
-
-Only three things at the repository root are shared, and none of them is code:
-[`pyproject.toml`](pyproject.toml) (black at 88 columns, isort),
-[`setup.cfg`](setup.cfg) (pycodestyle) and `.editorconfig`. Migrations are
-excluded from both formatters.
+The TradeCore and notification containers run their migrations on start and
+keep SQLite on a named volume. The notification API also seeds its demo
+channels, categories and users, so the front-end on 8614 works straight away.
+To add demo messages:
 
 ```bash
-black .          # from the repository root, covers all three samples
-pycodestyle .
+docker compose exec notification-api python manage.py seed_demo --messages 4
 ```
 
-## What is not here
+## Configuration
 
-- **The CI suites use offline fixtures.** They do not verify production provider credentials or live delivery.
-- **SQLite and `runserver` everywhere.** These are reading samples, not
+| Sample | Variables (all optional) |
+|---|---|
+| TradeCore | `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `SQLITE_PATH`, `ABSTRACT_GEOLOCATION_API_KEY`, `ABSTRACT_HOLIDAYS_API_KEY`, `ABSTRACT_API_TIMEOUT` |
+| aviyel | `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `GOOGLE_API_KEY` (collection only) |
+| notification API | `SECRET_KEY`, `DJANGO_DEBUG`, `ALLOWED_HOSTS`, `SQLITE_PATH`, `CORS_ALLOWED_ORIGINS`, `PAGE_SIZE` |
+| notification front-end | `REACT_APP_API_URL` (default `http://localhost:8000/`) |
+
+## Formatting and lint
+
+The repository root holds the only shared files. None of them is code:
+[`pyproject.toml`](pyproject.toml) (black, isort), [`setup.cfg`](setup.cfg)
+(pycodestyle) and `.editorconfig`. They cover all three samples:
+
+```bash
+black --check . && isort --check-only . && pycodestyle .
+```
+
+The front-end uses CRA's ESLint config (`npx eslint src`) and Prettier.
+
+## Limits
+
+- SQLite and `runserver` everywhere. These are samples to read, not
   deployments.
-- **No queue.** The notification fan-out happens synchronously inside the
-  request. Fine at demo scale, wrong for real delivery.
-- **`aviyel` loads the whole CSV into memory.** Fine for hundreds of rows.
-- **TradeCore tokens use PyJWT 2 with explicit HS256 verification and required expiry.**
-  The HTTP `JWT <token>` header contract is retained. Three regressions reject expired,
-  missing-expiry and alternate-algorithm tokens.
-- **No AI features and no added product features.** Each sample answers its
-  original brief; anything more would make it harder to assess, not easier.
+- aviyel loads the whole CSV into memory, which is fine for a few hundred rows.
+- `GET /api/user/<id>` in TradeCore needs no token, so it shows any user's
+  e-mail address.
 
-## Independent data paths
+## License
 
-```mermaid
-flowchart LR
-  T[TradeCore HTTP requests] --> A[Account and post services]
-  A --> TS[(TradeCore SQLite)]
-  Y[YouTube collection request] --> YC[Provider client]
-  YC --> CSV[Input CSV]
-  CSV --> Stats[Pure pandas statistics]
-  Stats --> Reports[Report CSVs]
-  N[Notification request] --> Fanout[Transactional dispatcher]
-  Fanout --> NS[(Separate notification SQLite)]
-```
-
-The provider clients are mocked in tests; no paid provider calls are required.
-The notification browser build remains on Node 22 and is checked separately.
+[MIT](LICENSE).
