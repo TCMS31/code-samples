@@ -54,7 +54,7 @@ class StatisticsTests(SimpleTestCase):
                 "video_id": ["a", "b", "c", "d"],
                 "category": ["Travel", "Travel", "Music", "Music"],
                 "duration": [100.0, 200.0, 50.0, 400.0],
-                "tags": ["['x']", "['y']", "['x']", None],
+                "tags": ["['x', 'y']", "['y']", "['x']", None],
             }
         )
 
@@ -81,8 +81,25 @@ class StatisticsTests(SimpleTestCase):
 
     def test_tags_per_category_drops_nulls_and_dedupes(self):
         result = statistics.tags_per_category(self.frame)
-        self.assertEqual(result["Travel"], ["['x']", "['y']"])
-        self.assertEqual(result["Music"], ["['x']"])
+        self.assertEqual(result["Travel"], ["x", "y"])
+        self.assertEqual(result["Music"], ["x"])
+
+    def test_tags_are_split_out_of_the_stored_list_repr(self):
+        frame = pd.DataFrame(
+            {
+                "category": ["Travel", "Travel"],
+                "tags": ["['city', 'rome']", "['rome', \"o'hare\"]"],
+            }
+        )
+        self.assertEqual(
+            statistics.tags_per_category(frame)["Travel"], ["city", "o'hare", "rome"]
+        )
+
+    def test_a_tag_cell_that_is_not_a_list_is_kept_as_one_tag(self):
+        frame = pd.DataFrame({"category": ["Music"], "tags": ["live, acoustic"]})
+        self.assertEqual(
+            statistics.tags_per_category(frame)["Music"], ["live, acoustic"]
+        )
 
     def test_empty_volume_comparison_raises(self):
         with self.assertRaises(statistics.EmptyDataset):

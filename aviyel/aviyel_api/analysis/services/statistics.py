@@ -4,6 +4,7 @@ Nothing here touches the network, Django, or the request cycle, so it can be
 unit-tested directly against the committed ``input_files/travel.csv`` sample.
 """
 
+import ast
 import csv
 
 import pandas as pd
@@ -62,10 +63,36 @@ def min_max_category_by_duration(frame):
     }
 
 
+def _parse_tags(raw):
+    """Turn one cell of the ``tags`` column into a list of tag strings.
+
+    Collected CSVs store each video's tags as the repr of a Python list, e.g.
+    ``"['city', 'tourism']"``. Anything that is not such a list is one tag.
+    """
+    if isinstance(raw, list):
+        return [str(tag) for tag in raw]
+    if not isinstance(raw, str) or not raw.strip():
+        return []
+    try:
+        parsed = ast.literal_eval(raw)
+    except (ValueError, SyntaxError):
+        return [raw]
+    if isinstance(parsed, (list, tuple)):
+        return [str(tag) for tag in parsed]
+    return [raw]
+
+
 def tags_per_category(frame):
-    """Return ``{category: [unique tag strings]}``."""
+    """Return ``{category: [unique tags]}``, sorted.
+
+    Previously each row's whole tag-list string was treated as a single tag, so
+    a category's "unique tags" were really its distinct tag lists.
+    """
     grouped = frame.dropna(subset=["tags"]).groupby("category")["tags"]
-    return {category: sorted(set(values)) for category, values in grouped}
+    return {
+        category: sorted({tag for cell in cells for tag in _parse_tags(cell)})
+        for category, cells in grouped
+    }
 
 
 def analyse(frame):
