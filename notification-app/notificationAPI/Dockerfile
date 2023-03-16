@@ -28,6 +28,11 @@ RUN python -m pip install --no-index --find-links=/wheels -r requirements.txt \
 
 COPY --chown=appuser:appuser . .
 
+# /app itself is root-owned, so SQLite needs a directory appuser can write to.
+# Compose mounts a named volume here.
+RUN mkdir -p /app/data && chown appuser:appuser /app/data
+ENV SQLITE_PATH=/app/data/db.sqlite3
+
 USER appuser
 
 EXPOSE 8000
