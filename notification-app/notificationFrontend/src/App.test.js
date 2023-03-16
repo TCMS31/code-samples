@@ -102,10 +102,13 @@ describe("AddMessage", () => {
 
 describe("Logs", () => {
   test("renders each returned log line", async () => {
-    api.fetchLogs.mockResolvedValue([
-      { log: "2024-01-01 -- Test user 1 -- E-Mail -- Sports -- Match tonight" },
-      { log: "2024-01-01 -- Test user 2 -- SMS -- Sports -- Match tonight" },
-    ]);
+    api.fetchLogs.mockResolvedValue({
+      rows: [
+        { log: "2024-01-01 -- Test user 1 -- E-Mail -- Sports -- Match tonight" },
+        { log: "2024-01-01 -- Test user 2 -- SMS -- Sports -- Match tonight" },
+      ],
+      total: 2,
+    });
 
     renderAt(<Logs />);
 
@@ -118,7 +121,7 @@ describe("Logs", () => {
     // Regression: the log text was used as the React key, so identical lines
     // (the same message fanned out to several users) collided.
     const line = { log: "same line" };
-    api.fetchLogs.mockResolvedValue([line, line, line]);
+    api.fetchLogs.mockResolvedValue({ rows: [line, line, line], total: 3 });
 
     renderAt(<Logs />);
 
@@ -126,11 +129,24 @@ describe("Logs", () => {
   });
 
   test("shows an empty state rather than a blank page", async () => {
-    api.fetchLogs.mockResolvedValue([]);
+    api.fetchLogs.mockResolvedValue({ rows: [], total: 0 });
 
     renderAt(<Logs />);
 
     expect(await screen.findByText(/no notifications yet/i)).toBeInTheDocument();
+  });
+
+  test("says when only the newest page of a longer log is shown", async () => {
+    api.fetchLogs.mockResolvedValue({
+      rows: [{ log: "one" }, { log: "two" }],
+      total: 120,
+    });
+
+    renderAt(<Logs />);
+
+    expect(
+      await screen.findByText("Newest 2 of 120 entries")
+    ).toBeInTheDocument();
   });
 
   test("shows a retry affordance when the API is unreachable", async () => {

@@ -18,14 +18,17 @@ export async function createMessage({ message, category }) {
 }
 
 /**
- * Fetch rendered log lines.
+ * Fetch the newest page of rendered log lines.
  *
- * The API is paginated, so the rows live under `results`. Older unpaginated
- * responses returned a bare array; both shapes are handled.
+ * The API is paginated: `rows` is this page and `total` is the server's
+ * `count`, which is larger than `rows.length` once there are more entries than
+ * PAGE_SIZE. A bare array (older unpaginated API) counts as one full page.
  */
 export async function fetchLogs() {
   const { data } = await client.get("logs/string");
-  return Array.isArray(data) ? data : data.results ?? [];
+  if (Array.isArray(data)) return { rows: data, total: data.length };
+  const rows = data.results ?? [];
+  return { rows, total: data.count ?? rows.length };
 }
 
 /** Fetch the selectable message categories. */

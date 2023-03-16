@@ -12,15 +12,25 @@ import React, { useCallback, useEffect, useState } from "react";
 import { fetchLogs } from "../api/client";
 import Navbar from "./Navbar";
 
+const summary = (shown, total) => {
+  const noun = total === 1 ? "entry" : "entries";
+  // Only the first page is fetched, so say so when there is more.
+  return shown < total
+    ? `Newest ${shown} of ${total} ${noun}`
+    : `${total} ${noun}, newest first`;
+};
+
 const Logs = () => {
   const [logs, setLogs] = useState([]);
+  const [total, setTotal] = useState(0);
   const [state, setState] = useState("loading");
 
   const load = useCallback(() => {
     setState("loading");
     fetchLogs()
-      .then((rows) => {
+      .then(({ rows, total }) => {
         setLogs(rows);
+        setTotal(total);
         setState("ready");
       })
       .catch(() => setState("error"));
@@ -43,11 +53,7 @@ const Logs = () => {
               Notification log
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {state === "ready"
-                ? `${logs.length} ${
-                    logs.length === 1 ? "entry" : "entries"
-                  }, newest first`
-                : " "}
+              {state === "ready" ? summary(logs.length, total) : " "}
             </Typography>
           </Box>
           <Button onClick={load} disabled={state === "loading"}>
